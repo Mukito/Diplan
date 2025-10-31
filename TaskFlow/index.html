@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Gestão de Projetos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --primary: #5D5CDE;
+            --primary-hover: #4a49c5;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+
+        .drag-over {
+            background-color: rgba(93, 92, 222, 0.1);
+        }
+
+        .task-card {
+            transition: margin 0.2s ease;
+        }
+
+        .drag-placeholder {
+            border: 2px dashed #5D5CDE;
+            background-color: rgba(93, 92, 222, 0.05);
+            height: 60px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .modal-overlay {
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .list-container {
+            min-width: 280px;
+            max-width: 280px;
+        }
+
+        .color-option {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 3px solid transparent;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #5D5CDE;
+            box-shadow: 0 0 0 2px rgba(93, 92, 222, 0.2);
+        }
+
+        .board-tab {
+            transition: background-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .board-tab.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        @media (max-width: 640px) {
+            .list-container {
+                min-width: 260px;
+                max-width: 260px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+    <!-- Login/Register Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md slide-in">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">TaskFlow</h1>
+                <p class="text-gray-600 dark:text-gray-400">Gerencie seus projetos com eficiência</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-6">Entrar</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Usuário</label>
+                        <input type="text" id="loginUsername"
+                               class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Digite seu usuário">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Senha</label>
+                        <input type="password" id="loginPassword"
+                               class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Digite sua senha">
+                    </div>
+                    <button onclick="login()"
+                            class="w-full btn-primary py-3 rounded-lg font-semibold text-base">
+                        Entrar
+                    </button>
+                </div>
+                <p class="text-center text-gray-600 dark:text-gray-400 mt-6 text-base">
+                    Não tem uma conta?
+                    <button onclick="showRegister()" class="text-purple-600 dark:text-purple-400 font-semibold hover:underline">
+                        Criar conta
+                    </button>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-6">Criar Conta</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Nome Completo</label>
+                        <input type="text" id="registerName"
+                               class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Digite seu nome">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Usuário</label>
+                        <input type="text" id="registerUsername"
+                               class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Escolha um usuário">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Senha</label>
+                        <input type="password" id="registerPassword"
+                               class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                               placeholder="Crie uma senha">
+                    </div>
+                    <button onclick="register()"
+                            class="w-full btn-primary py-3 rounded-lg font-semibold text-base">
+                        Criar Conta
+                    </button>
+                </div>
+                <p class="text-center text-gray-600 dark:text-gray-400 mt-6 text-base">
+                    Já tem uma conta?
+                    <button onclick="showLogin()" class="text-purple-600 dark:text-purple-400 font-semibold hover:underline">
+                        Entrar
+                    </button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">TaskFlow</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userName" class="text-base text-gray-700 dark:text-gray-300"></span>
+                    <button onclick="logout()"
+                            class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Boards Navigation -->
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div class="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+                <div id="boardTabs" class="flex space-x-2">
+                    <!-- Board tabs will be added here -->
+                </div>
+                <button onclick="showAddBoardModal()"
+                        class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition whitespace-nowrap">
+                    + Novo Quadro
+                </button>
+            </div>
+        </div>
+
+        <!-- Board Container -->
+        <div class="p-6">
+            <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+                <h2 id="currentBoardTitle" class="text-xl font-semibold text-gray-800 dark:text-white"></h2>
+                <div class="flex space-x-2">
+                    <button onclick="showEditBoardModal()"
+                            class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                        ✏️ Editar Quadro
+                    </button>
+                    <button onclick="showAddListModal()"
+                            class="btn-primary px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 text-base">
+                        <span>+ Nova Lista</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lists Container -->
+            <div id="listsContainer" class="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+                <!-- Lists will be added here dynamically -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-16 hidden">
+                <div class="text-gray-400 dark:text-gray-600 mb-4">
+                    <svg class="mx-auto h-24 w-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Nenhuma lista criada ainda
+                </h3>
+                <p class="text-gray-500 dark:text-gray-500 mb-4">
+                    Comece criando sua primeira lista de tarefas clicando no botão acima
+                </p>
+            </div>
+
+            <!-- No Boards State -->
+            <div id="noBoardsState" class="text-center py-16 hidden">
+                <div class="text-gray-400 dark:text-gray-600 mb-4">
+                    <svg class="mx-auto h-24 w-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Nenhum quadro criado ainda
+                </h3>
+                <p class="text-gray-500 dark:text-gray-500 mb-4">
+                    Crie seu primeiro quadro de tarefas para começar
+                </p>
+                <button onclick="showAddBoardModal()"
+                        class="btn-primary px-6 py-3 rounded-lg font-semibold text-base">
+                    + Criar Primeiro Quadro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Board Modal -->
+    <div id="boardModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md slide-in">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4" id="boardModalTitle">Novo Quadro</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Nome do Quadro</label>
+                    <input type="text" id="boardNameInput"
+                           class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="Ex: Projeto Web, Marketing, Pessoal">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeBoardModal()"
+                            class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button id="deleteBoardBtn" onclick="deleteCurrentBoard()" class="px-4 py-2 text-base bg-red-500 text-white hover:bg-red-600 rounded-lg font-semibold hidden">
+                        Excluir
+                    </button>
+                    <button onclick="saveBoard()"
+                            class="btn-primary px-4 py-2 rounded-lg font-semibold text-base">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit List Modal -->
+    <div id="listModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md slide-in">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4" id="listModalTitle">Nova Lista</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Nome da Lista</label>
+                    <input type="text" id="listNameInput"
+                           class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="Ex: A Fazer, Em Progresso, Concluído">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeListModal()"
+                            class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button onclick="saveList()"
+                            class="btn-primary px-4 py-2 rounded-lg font-semibold text-base">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl slide-in max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4" id="taskModalTitle">Nova Tarefa</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Título da Tarefa</label>
+                    <input type="text" id="taskTitleInput"
+                           class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                           placeholder="Digite o título da tarefa">
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 text-base mb-2">Descrição</label>
+                    <textarea id="taskDescriptionInput" rows="6"
+                              class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white resize-none"
+                              placeholder="Descreva os detalhes da tarefa..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 text-base mb-3">Cor do Cartão</label>
+                    <div class="flex flex-wrap gap-3">
+                        <div class="color-option" style="background-color: #FFFFFF; border: 2px solid #e5e7eb;" data-color="none" title="Sem cor"></div>
+                        <div class="color-option" style="background-color: #FEE2E2;" data-color="#FEE2E2" title="Vermelho"></div>
+                        <div class="color-option" style="background-color: #FFEDD5;" data-color="#FFEDD5" title="Laranja"></div>
+                        <div class="color-option" style="background-color: #FEF9C3;" data-color="#FEF9C3" title="Amarelo"></div>
+                        <div class="color-option" style="background-color: #D1FAE5;" data-color="#D1FAE5" title="Verde"></div>
+                        <div class="color-option" style="background-color: #DBEAFE;" data-color="#DBEAFE" title="Azul"></div>
+                        <div class="color-option" style="background-color: #E0E7FF;" data-color="#E0E7FF" title="Índigo"></div>
+                        <div class="color-option" style="background-color: #F3E8FF;" data-color="#F3E8FF" title="Roxo"></div>
+                        <div class="color-option" style="background-color: #FCE7F3;" data-color="#FCE7F3" title="Rosa"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeTaskModal()"
+                            class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button onclick="saveTask()"
+                            class="btn-primary px-4 py-2 rounded-lg font-semibold text-base">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Task Details Modal -->
+    <div id="taskDetailsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl slide-in max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-2xl font-semibold text-gray-800 dark:text-white" id="taskDetailsTitle"></h3>
+                <button onclick="closeTaskDetailsModal()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="mb-6">
+                <h4 class="text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">Descrição</h4>
+                <p id="taskDetailsDescription" class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap"></p>
+            </div>
+            <div class="mb-6">
+                <h4 class="text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">Mover para outro quadro</h4>
+                <select id="moveToBoardSelect" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button onclick="deleteTaskFromDetails()"
+                        class="px-4 py-2 text-base bg-red-500 text-white hover:bg-red-600 rounded-lg font-semibold">
+                    Excluir
+                </button>
+                <button onclick="editTaskFromDetails()"
+                        class="btn-primary px-4 py-2 rounded-lg font-semibold text-base">
+                    Editar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Dialog -->
+    <div id="confirmDialog" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm slide-in">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4" id="confirmTitle"></h3>
+            <p class="text-base text-gray-600 dark:text-gray-400 mb-6" id="confirmMessage"></p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeConfirmDialog(false)"
+                        class="px-4 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    Cancelar
+                </button>
+                <button onclick="closeConfirmDialog(true)"
+                        class="px-4 py-2 text-base bg-red-500 text-white hover:bg-red-600 rounded-lg font-semibold">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Storage Layer - Compatible with iframe environments
+        class Storage {
+            constructor() {
+                this.memoryStore = {};
+                this.storageType = this.detectStorage();
+            }
+
+            detectStorage() {
+                try {
+                    const testKey = '__storage_test__';
+                    window['local' + 'Storage'].setItem(testKey, 'test');
+                    window['local' + 'Storage'].removeItem(testKey);
+                    return 'localStorage';
+                } catch (e) {
+                    return 'memory';
+                }
+            }
+
+            getItem(key) {
+                if (this.storageType === 'localStorage') {
+                    return window['local' + 'Storage'].getItem(key);
+                }
+                return this.memoryStore[key] || null;
+            }
+
+            setItem(key, value) {
+                if (this.storageType === 'localStorage') {
+                    window['local' + 'Storage'].setItem(key, value);
+                } else {
+                    this.memoryStore[key] = value;
+                }
+            }
+
+            removeItem(key) {
+                if (this.storageType === 'localStorage') {
+                    window['local' + 'Storage'].removeItem(key);
+                } else {
+                    delete this.memoryStore[key];
+                }
+            }
+        }
+
+        const storage = new Storage();
+
+        // Database Management
+        class Database {
+            constructor() {
+                this.currentUser = null;
+            }
+
+            getUsers() {
+                return JSON.parse(storage.getItem('taskflow_users') || '[]');
+            }
+
+            saveUsers(users) {
+                storage.setItem('taskflow_users', JSON.stringify(users));
+            }
+
+            getUserData(username) {
+                return JSON.parse(storage.getItem(`taskflow_data_${username}`) || '{"boards": [], "currentBoardId": null}');
+            }
+
+            saveUserData(username, data) {
+                storage.setItem(`taskflow_data_${username}`, JSON.stringify(data));
+            }
+
+            createUser(name, username, password) {
+                const users = this.getUsers();
+                if (users.find(u => u.username === username)) {
+                    return { success: false, message: 'Usuário já existe' };
+                }
+
+                users.push({ name, username, password, createdAt: new Date().toISOString() });
+                this.saveUsers(users);
+
+                this.saveUserData(username, {
+                    boards: [],
+                    currentBoardId: null
+                });
+
+                return { success: true };
+            }
+
+            authenticateUser(username, password) {
+                const users = this.getUsers();
+                const user = users.find(u => u.username === username && u.password === password);
+
+                if (user) {
+                    this.currentUser = user;
+                    return { success: true, user };
+                }
+
+                return { success: false, message: 'Usuário ou senha incorretos' };
+            }
+
+            getCurrentUserData() {
+                if (!this.currentUser) return null;
+                return this.getUserData(this.currentUser.username);
+            }
+
+            saveCurrentUserData(data) {
+                if (!this.currentUser) return;
+                this.saveUserData(this.currentUser.username, data);
+            }
+        }
+
+        const db = new Database();
+        let currentBoardId = null;
+        let currentListId = null;
+        let currentTaskId = null;
+        let editingBoardId = null;
+        let editingListId = null;
+        let editingTaskId = null;
+        let selectedColor = null;
+        let confirmCallback = null;
+
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Color picker initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    colorOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedColor = option.dataset.color === 'none' ? null : option.dataset.color;
+                });
+            });
+        });
+
+        // Authentication Functions
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+
+        function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showAlert('Atenção', 'Por favor, preencha todos os campos');
+                return;
+            }
+
+            const result = db.authenticateUser(username, password);
+            if (result.success) {
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('userName').textContent = result.user.name;
+                initializeApp();
+            } else {
+                showAlert('Erro', result.message);
+            }
+        }
+
+        function register() {
+            const name = document.getElementById('registerName').value.trim();
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+
+            if (!name || !username || !password) {
+                showAlert('Atenção', 'Por favor, preencha todos os campos');
+                return;
+            }
+
+            if (username.length < 3) {
+                showAlert('Atenção', 'O usuário deve ter pelo menos 3 caracteres');
+                return;
+            }
+
+            if (password.length < 4) {
+                showAlert('Atenção', 'A senha deve ter pelo menos 4 caracteres');
+                return;
+            }
+
+            const result = db.createUser(name, username, password);
+            if (result.success) {
+                showAlert('Sucesso', 'Conta criada com sucesso! Faça login para continuar');
+                showLogin();
+                document.getElementById('registerName').value = '';
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+            } else {
+                showAlert('Erro', result.message);
+            }
+        }
+
+        function logout() {
+            showConfirmDialog('Sair', 'Tem certeza que deseja sair?', (confirmed) => {
+                if (confirmed) {
+                    db.currentUser = null;
+                    document.getElementById('authScreen').classList.remove('hidden');
+                    document.getElementById('mainApp').classList.add('hidden');
+                    document.getElementById('loginUsername').value = '';
+                    document.getElementById('loginPassword').value = '';
+                }
+            });
+        }
+
+        // Alert Dialog
+        function showAlert(title, message) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay p-4';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm slide-in">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">${title}</h3>
+                    <p class="text-base text-gray-600 dark:text-gray-400 mb-6">${message}</p>
+                    <div class="flex justify-end">
+                        <button onclick="this.closest('.fixed').remove()"
+                                class="btn-primary px-4 py-2 rounded-lg font-semibold text-base">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Confirm Dialog
+        function showConfirmDialog(title, message, callback) {
+            confirmCallback = callback;
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmDialog').classList.remove('hidden');
+        }
+
+        function closeConfirmDialog(confirmed) {
+            document.getElementById('confirmDialog').classList.add('hidden');
+            if (confirmCallback) {
+                confirmCallback(confirmed);
+                confirmCallback = null;
+            }
+        }
+
+        // Initialize App
+        function initializeApp() {
+            const userData = db.getCurrentUserData();
+
+            if (!userData.boards || userData.boards.length === 0) {
+                document.getElementById('noBoardsState').classList.remove('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('listsContainer').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('noBoardsState').classList.add('hidden');
+
+            if (userData.currentBoardId && userData.boards.find(b => b.id === userData.currentBoardId)) {
+                currentBoardId = userData.currentBoardId;
+            } else {
+                currentBoardId = userData.boards[0].id;
+                userData.currentBoardId = currentBoardId;
+                db.saveCurrentUserData(userData);
+            }
+
+            renderBoardTabs();
+            loadBoard();
+        }
+
+        // Board Management
+        function renderBoardTabs() {
+            const userData = db.getCurrentUserData();
+            const tabsContainer = document.getElementById('boardTabs');
+            tabsContainer.innerHTML = '';
+
+            userData.boards.forEach(board => {
+                const tab = document.createElement('button');
+                tab.className = `board-tab px-4 py-2 rounded-lg font-medium text-base ${board.id === currentBoardId ? 'active' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`;
+                tab.textContent = board.name;
+                tab.onclick = () => switchBoard(board.id);
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function switchBoard(boardId) {
+            currentBoardId = boardId;
+            const userData = db.getCurrentUserData();
+            userData.currentBoardId = boardId;
+            db.saveCurrentUserData(userData);
+            renderBoardTabs();
+            loadBoard();
+        }
+
+        function showAddBoardModal() {
+            editingBoardId = null;
+            document.getElementById('boardModalTitle').textContent = 'Novo Quadro';
+            document.getElementById('boardNameInput').value = '';
+            document.getElementById('deleteBoardBtn').classList.add('hidden');
+            document.getElementById('boardModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('boardNameInput').focus(), 100);
+        }
+
+        function showEditBoardModal() {
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            editingBoardId = currentBoardId;
+            document.getElementById('boardModalTitle').textContent = 'Editar Quadro';
+            document.getElementById('boardNameInput').value = board.name;
+            document.getElementById('deleteBoardBtn').classList.remove('hidden');
+            document.getElementById('boardModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('boardNameInput').focus(), 100);
+        }
+
+        function closeBoardModal() {
+            document.getElementById('boardModal').classList.add('hidden');
+            editingBoardId = null;
+        }
+
+        function saveBoard() {
+            const name = document.getElementById('boardNameInput').value.trim();
+
+            if (!name) {
+                showAlert('Atenção', 'Por favor, insira um nome para o quadro');
+                return;
+            }
+
+            const userData = db.getCurrentUserData();
+
+            if (editingBoardId) {
+                const board = userData.boards.find(b => b.id === editingBoardId);
+                if (board) {
+                    board.name = name;
+                }
+            } else {
+                const newBoard = {
+                    id: generateId(),
+                    name: name,
+                    lists: [],
+                    createdAt: new Date().toISOString()
+                };
+                userData.boards.push(newBoard);
+                currentBoardId = newBoard.id;
+                userData.currentBoardId = currentBoardId;
+            }
+
+            db.saveCurrentUserData(userData);
+            closeBoardModal();
+            renderBoardTabs();
+            loadBoard();
+            document.getElementById('noBoardsState').classList.add('hidden');
+        }
+
+        function deleteCurrentBoard() {
+            showConfirmDialog('Excluir Quadro', 'Tem certeza que deseja excluir este quadro e todas as suas listas e tarefas?', (confirmed) => {
+                if (confirmed) {
+                    const userData = db.getCurrentUserData();
+                    userData.boards = userData.boards.filter(b => b.id !== currentBoardId);
+
+                    if (userData.boards.length > 0) {
+                        currentBoardId = userData.boards[0].id;
+                        userData.currentBoardId = currentBoardId;
+                    } else {
+                        currentBoardId = null;
+                        userData.currentBoardId = null;
+                    }
+
+                    db.saveCurrentUserData(userData);
+                    closeBoardModal();
+                    initializeApp();
+                }
+            });
+        }
+
+        // Board Functions
+        function loadBoard() {
+            const userData = db.getCurrentUserData();
+            if (!userData || !currentBoardId) return;
+
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            document.getElementById('currentBoardTitle').textContent = board.name;
+            const listsContainer = document.getElementById('listsContainer');
+            listsContainer.innerHTML = '';
+
+            if (!board.lists || board.lists.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+
+            board.lists.forEach(list => {
+                renderList(list);
+            });
+        }
+
+        function renderList(list) {
+            const listsContainer = document.getElementById('listsContainer');
+
+            const listElement = document.createElement('div');
+            listElement.className = 'list-container bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex-shrink-0';
+            listElement.dataset.listId = list.id;
+
+            const tasksHtml = list.tasks.map(task => {
+                const bgColor = task.color || '';
+                const textColor = task.color ? 'text-gray-800 dark:text-gray-900' : 'text-gray-800 dark:text-white';
+                const descColor = task.color ? 'text-gray-700 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400';
+
+                return `
+                <div class="p-3 rounded-lg shadow-sm mb-2 cursor-pointer card-hover ${task.color ? '' : 'bg-white dark:bg-gray-700'}"
+                     style="${task.color ? `background-color: ${task.color}` : ''}"
+                     draggable="true"
+                     data-task-id="${task.id}"
+                     onclick="showTaskDetails('${list.id}', '${task.id}')">
+                    <h4 class="font-medium ${textColor} text-base mb-1">${escapeHtml(task.title)}</h4>
+                    ${task.description ? `<p class="text-sm ${descColor} line-clamp-2">${escapeHtml(task.description)}</p>` : ''}
+                </div>
+            `;
+            }).join('');
+
+            listElement.innerHTML = `
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-semibold text-gray-800 dark:text-white text-base">${escapeHtml(list.name)}</h3>
+                    <div class="flex space-x-1">
+                        <button onclick="editList('${list.id}')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1" title="Editar lista">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </button>
+                        <button onclick="deleteList('${list.id}')" class="text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1" title="Excluir lista">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="tasks-container mb-3 max-h-96 overflow-y-auto scrollbar-hide" data-list-id="${list.id}">
+                    ${tasksHtml}
+                </div>
+                <button onclick="showAddTaskModal('${list.id}')"
+                        class="w-full text-left px-3 py-2 text-base text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+                    + Adicionar Tarefa
+                </button>
+            `;
+
+            listsContainer.appendChild(listElement);
+
+            const tasksContainer = listElement.querySelector('.tasks-container');
+            tasksContainer.addEventListener('dragover', handleDragOver);
+            tasksContainer.addEventListener('drop', handleDrop);
+            tasksContainer.addEventListener('dragleave', handleDragLeave);
+
+            listElement.querySelectorAll('[draggable="true"]').forEach(task => {
+                task.addEventListener('dragstart', handleDragStart);
+                task.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        // List Management
+        function showAddListModal() {
+            editingListId = null;
+            document.getElementById('listModalTitle').textContent = 'Nova Lista';
+            document.getElementById('listNameInput').value = '';
+            document.getElementById('listModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('listNameInput').focus(), 100);
+        }
+
+        function editList(listId) {
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            const list = board.lists.find(l => l.id === listId);
+            if (!list) return;
+
+            editingListId = listId;
+            document.getElementById('listModalTitle').textContent = 'Editar Lista';
+            document.getElementById('listNameInput').value = list.name;
+            document.getElementById('listModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('listNameInput').focus(), 100);
+        }
+
+        function closeListModal() {
+            document.getElementById('listModal').classList.add('hidden');
+            editingListId = null;
+        }
+
+        function saveList() {
+            const name = document.getElementById('listNameInput').value.trim();
+
+            if (!name) {
+                showAlert('Atenção', 'Por favor, insira um nome para a lista');
+                return;
+            }
+
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            if (editingListId) {
+                const list = board.lists.find(l => l.id === editingListId);
+                if (list) {
+                    list.name = name;
+                }
+            } else {
+                const newList = {
+                    id: generateId(),
+                    name: name,
+                    tasks: [],
+                    createdAt: new Date().toISOString()
+                };
+                board.lists.push(newList);
+            }
+
+            db.saveCurrentUserData(userData);
+            loadBoard();
+            closeListModal();
+        }
+
+        function deleteList(listId) {
+            showConfirmDialog('Excluir Lista', 'Tem certeza que deseja excluir esta lista e todas as suas tarefas?', (confirmed) => {
+                if (confirmed) {
+                    const userData = db.getCurrentUserData();
+                    const board = userData.boards.find(b => b.id === currentBoardId);
+                    if (board) {
+                        board.lists = board.lists.filter(l => l.id !== listId);
+                        db.saveCurrentUserData(userData);
+                        loadBoard();
+                    }
+                }
+            });
+        }
+
+        // Task Management
+        function showAddTaskModal(listId) {
+            currentListId = listId;
+            editingTaskId = null;
+            selectedColor = null;
+            document.getElementById('taskModalTitle').textContent = 'Nova Tarefa';
+            document.getElementById('taskTitleInput').value = '';
+            document.getElementById('taskDescriptionInput').value = '';
+
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(opt => opt.classList.remove('selected'));
+            colorOptions[0].classList.add('selected');
+
+            document.getElementById('taskModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('taskTitleInput').focus(), 100);
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+            currentListId = null;
+            editingTaskId = null;
+            selectedColor = null;
+        }
+
+        function saveTask() {
+            const title = document.getElementById('taskTitleInput').value.trim();
+            const description = document.getElementById('taskDescriptionInput').value.trim();
+
+            if (!title) {
+                showAlert('Atenção', 'Por favor, insira um título para a tarefa');
+                return;
+            }
+
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            const list = board.lists.find(l => l.id === currentListId);
+            if (!list) return;
+
+            if (editingTaskId) {
+                const task = list.tasks.find(t => t.id === editingTaskId);
+                if (task) {
+                    task.title = title;
+                    task.description = description;
+                    task.color = selectedColor;
+                }
+            } else {
+                const newTask = {
+                    id: generateId(),
+                    title: title,
+                    description: description,
+                    color: selectedColor,
+                    createdAt: new Date().toISOString()
+                };
+                list.tasks.push(newTask);
+            }
+
+            db.saveCurrentUserData(userData);
+            loadBoard();
+            closeTaskModal();
+        }
+
+        function showTaskDetails(listId, taskId) {
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            const list = board.lists.find(l => l.id === listId);
+            if (!list) return;
+
+            const task = list.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            currentListId = listId;
+            currentTaskId = taskId;
+
+            document.getElementById('taskDetailsTitle').textContent = task.title;
+            document.getElementById('taskDetailsDescription').textContent = task.description || 'Sem descrição';
+
+            const selectBoard = document.getElementById('moveToBoardSelect');
+            selectBoard.innerHTML = `<option value="">Selecione um quadro...</option>`;
+
+            userData.boards.forEach(b => {
+                if (b.id !== currentBoardId) {
+                    b.lists.forEach(l => {
+                        const option = document.createElement('option');
+                        option.value = `${b.id}|${l.id}`;
+                        option.textContent = `${b.name} → ${l.name}`;
+                        selectBoard.appendChild(option);
+                    });
+                }
+            });
+
+            selectBoard.onchange = () => {
+                if (selectBoard.value) {
+                    const [targetBoardId, targetListId] = selectBoard.value.split('|');
+                    moveTaskToDifferentBoard(taskId, listId, currentBoardId, targetBoardId, targetListId);
+                }
+            };
+
+            document.getElementById('taskDetailsModal').classList.remove('hidden');
+        }
+
+        function closeTaskDetailsModal() {
+            document.getElementById('taskDetailsModal').classList.add('hidden');
+            currentListId = null;
+            currentTaskId = null;
+        }
+
+        function editTaskFromDetails() {
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            const list = board.lists.find(l => l.id === currentListId);
+            if (!list) return;
+
+            const task = list.tasks.find(t => t.id === currentTaskId);
+            if (!task) return;
+
+            editingTaskId = currentTaskId;
+            selectedColor = task.color;
+
+            document.getElementById('taskModalTitle').textContent = 'Editar Tarefa';
+            document.getElementById('taskTitleInput').value = task.title;
+            document.getElementById('taskDescriptionInput').value = task.description;
+
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(opt => {
+                opt.classList.remove('selected');
+                if (task.color && opt.dataset.color === task.color) {
+                    opt.classList.add('selected');
+                } else if (!task.color && opt.dataset.color === 'none') {
+                    opt.classList.add('selected');
+                }
+            });
+
+            closeTaskDetailsModal();
+            document.getElementById('taskModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('taskTitleInput').focus(), 100);
+        }
+
+        function deleteTaskFromDetails() {
+            showConfirmDialog('Excluir Tarefa', 'Tem certeza que deseja excluir esta tarefa?', (confirmed) => {
+                if (confirmed) {
+                    const userData = db.getCurrentUserData();
+                    const board = userData.boards.find(b => b.id === currentBoardId);
+                    if (!board) return;
+
+                    const list = board.lists.find(l => l.id === currentListId);
+                    if (list) {
+                        list.tasks = list.tasks.filter(t => t.id !== currentTaskId);
+                        db.saveCurrentUserData(userData);
+                        loadBoard();
+                        closeTaskDetailsModal();
+                    }
+                }
+            });
+        }
+
+        function moveTaskToDifferentBoard(taskId, sourceListId, sourceBoardId, targetBoardId, targetListId) {
+            const userData = db.getCurrentUserData();
+            const sourceBoard = userData.boards.find(b => b.id === sourceBoardId);
+            const targetBoard = userData.boards.find(b => b.id === targetBoardId);
+
+            if (!sourceBoard || !targetBoard) return;
+
+            const sourceList = sourceBoard.lists.find(l => l.id === sourceListId);
+            const targetList = targetBoard.lists.find(l => l.id === targetListId);
+
+            if (!sourceList || !targetList) return;
+
+            const taskIndex = sourceList.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const [task] = sourceList.tasks.splice(taskIndex, 1);
+            targetList.tasks.push(task);
+
+            db.saveCurrentUserData(userData);
+            loadBoard();
+            closeTaskDetailsModal();
+
+            showAlert('Sucesso', `Tarefa movida para "${targetBoard.name} → ${targetList.name}"`);
+        }
+
+        // Drag and Drop with Reordering
+        let draggedElement = null;
+        let sourceListId = null;
+        let draggedTaskId = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            draggedTaskId = e.target.dataset.taskId;
+            sourceListId = e.target.closest('.list-container').dataset.listId;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+
+            // Remove all drag-over classes
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+
+            const tasksContainer = e.currentTarget;
+            const afterElement = getDragAfterElement(tasksContainer, e.clientY);
+            const draggable = draggedElement;
+
+            if (afterElement == null) {
+                tasksContainer.appendChild(draggable);
+            } else {
+                tasksContainer.insertBefore(draggable, afterElement);
+            }
+
+            tasksContainer.classList.add('drag-over');
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            // Only remove if we're leaving the container, not entering a child
+            if (e.currentTarget.contains(e.relatedTarget)) {
+                return;
+            }
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+
+            e.currentTarget.classList.remove('drag-over');
+
+            const targetListId = e.currentTarget.dataset.listId;
+            const targetTaskElements = Array.from(e.currentTarget.querySelectorAll('[data-task-id]'));
+            const newIndex = targetTaskElements.indexOf(draggedElement);
+
+            if (newIndex === -1) {
+                // Task was dropped in container but not visible (shouldn't happen, but handle it)
+                moveTaskToList(draggedTaskId, sourceListId, targetListId, -1);
+            } else {
+                moveTaskToList(draggedTaskId, sourceListId, targetListId, newIndex);
+            }
+
+            return false;
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function moveTaskToList(taskId, fromListId, toListId, newIndex) {
+            const userData = db.getCurrentUserData();
+            const board = userData.boards.find(b => b.id === currentBoardId);
+            if (!board) return;
+
+            const fromList = board.lists.find(l => l.id === fromListId);
+            const toList = board.lists.find(l => l.id === toListId);
+
+            if (!fromList || !toList) return;
+
+            const taskIndex = fromList.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const [task] = fromList.tasks.splice(taskIndex, 1);
+
+            // If moving to the same list and the new index is after the old position,
+            // we need to adjust the index because we already removed the item
+            if (fromListId === toListId && newIndex > taskIndex) {
+                newIndex--;
+            }
+
+            // Insert at the correct position
+            if (newIndex === -1 || newIndex >= toList.tasks.length) {
+                toList.tasks.push(task);
+            } else {
+                toList.tasks.splice(newIndex, 0, task);
+            }
+
+            db.saveCurrentUserData(userData);
+            loadBoard();
+        }
+
+        // Utility Functions
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
