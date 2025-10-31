@@ -1,0 +1,221 @@
++   1 /* ===================================
++   2    TaskFlow - Styles
++   3    Sistema de Gestão de Projetos
++   4    =================================== */
++   5 
++   6 /* --- Variáveis e Reset --- */
++   7 * {
++   8     font-family: 'Inter', sans-serif;
++   9 }
++  10 
++  11 :root {
++  12     --primary: #5D5CDE;
++  13     --primary-hover: #4a49c5;
++  14 }
++  15 
++  16 /* --- Animações --- */
++  17 @keyframes fadeIn {
++  18     from { opacity: 0; }
++  19     to { opacity: 1; }
++  20 }
++  21 
++  22 @keyframes slideIn {
++  23     from {
++  24         transform: translateY(-20px);
++  25         opacity: 0;
++  26     }
++  27     to {
++  28         transform: translateY(0);
++  29         opacity: 1;
++  30     }
++  31 }
++  32 
++  33 /* --- Componentes Globais --- */
++  34 .btn-primary {
++  35     background-color: var(--primary);
++  36     color: white;
++  37     transition: background-color 0.2s;
++  38 }
++  39 
++  40 .btn-primary:hover {
++  41     background-color: var(--primary-hover);
++  42 }
++  43 
++  44 .modal-overlay {
++  45     animation: fadeIn 0.2s ease-in-out;
++  46 }
++  47 
++  48 .slide-in {
++  49     animation: slideIn 0.3s ease-out;
++  50 }
++  51 
++  52 /* --- Drag and Drop --- */
++  53 .dragging {
++  54     opacity: 0.5;
++  55 }
++  56 
++  57 .drag-over {
++  58     background-color: rgba(93, 92, 222, 0.1);
++  59 }
++  60 
++  61 .task-card {
++  62     transition: margin 0.2s ease;
++  63 }
++  64 
++  65 .drag-placeholder {
++  66     border: 2px dashed #5D5CDE;
++  67     background-color: rgba(93, 92, 222, 0.05);
++  68     height: 60px;
++  69     border-radius: 8px;
++  70     margin-bottom: 8px;
++  71 }
++  72 
++  73 .card-hover {
++  74     transition: transform 0.2s, box-shadow 0.2s;
++  75 }
++  76 
++  77 .card-hover:hover {
++  78     transform: translateY(-2px);
++  79     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
++  80 }
++  81 
++  82 /* --- Scrollbar --- */
++  83 .scrollbar-hide::-webkit-scrollbar {
++  84     display: none;
++  85 }
++  86 
++  87 .scrollbar-hide {
++  88     -ms-overflow-style: none;
++  89     scrollbar-width: none;
++  90 }
++  91 
++  92 /* --- Listas --- */
++  93 .list-container {
++  94     min-width: 280px;
++  95     max-width: 280px;
++  96 }
++  97 
++  98 .list-header {
++  99     border-radius: 8px 8px 0 0;
++ 100     padding: 12px;
++ 101     margin: -16px -16px 12px -16px;
++ 102 }
++ 103 
++ 104 /* --- Cores --- */
++ 105 .color-option {
++ 106     width: 36px;
++ 107     height: 36px;
++ 108     border-radius: 8px;
++ 109     cursor: pointer;
++ 110     transition: transform 0.2s, box-shadow 0.2s;
++ 111     border: 3px solid transparent;
++ 112 }
++ 113 
++ 114 .color-option:hover {
++ 115     transform: scale(1.1);
++ 116 }
++ 117 
++ 118 .color-option.selected {
++ 119     border-color: #5D5CDE;
++ 120     box-shadow: 0 0 0 2px rgba(93, 92, 222, 0.2);
++ 121 }
++ 122 
++ 123 /* --- Tabs de Quadros --- */
++ 124 .board-tab {
++ 125     transition: background-color 0.2s, color 0.2s;
++ 126     white-space: nowrap;
++ 127 }
++ 128 
++ 129 .board-tab.active {
++ 130     background-color: var(--primary);
++ 131     color: white;
++ 132 }
++ 133 
++ 134 /* --- Context Menu --- */
++ 135 .context-menu {
++ 136     position: absolute;
++ 137     background: white;
++ 138     border-radius: 8px;
++ 139     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
++ 140     padding: 8px 0;
++ 141     min-width: 200px;
++ 142     z-index: 1000;
++ 143     display: none;
++ 144 }
++ 145 
++ 146 .context-menu.show {
++ 147     display: block;
++ 148 }
++ 149 
++ 150 .context-menu-item {
++ 151     padding: 10px 16px;
++ 152     cursor: pointer;
++ 153     transition: background-color 0.2s;
++ 154     display: flex;
++ 155     align-items: center;
++ 156     gap: 8px;
++ 157 }
++ 158 
++ 159 .context-menu-item:hover {
++ 160     background-color: #f3f4f6;
++ 161 }
++ 162 
++ 163 .context-menu-item.danger:hover {
++ 164     background-color: #fee2e2;
++ 165     color: #dc2626;
++ 166 }
++ 167 
++ 168 .context-menu-separator {
++ 169     height: 1px;
++ 170     background-color: #e5e7eb;
++ 171     margin: 4px 0;
++ 172 }
++ 173 
++ 174 /* Dark mode para context menu */
++ 175 .dark .context-menu {
++ 176     background: #1f2937;
++ 177     border: 1px solid #374151;
++ 178 }
++ 179 
++ 180 .dark .context-menu-item:hover {
++ 181     background-color: #374151;
++ 182 }
++ 183 
++ 184 .dark .context-menu-item.danger:hover {
++ 185     background-color: #7f1d1d;
++ 186     color: #fca5a5;
++ 187 }
++ 188 
++ 189 .dark .context-menu-separator {
++ 190     background-color: #4b5563;
++ 191 }
++ 192 
++ 193 /* --- Responsivo --- */
++ 194 @media (max-width: 640px) {
++ 195     .list-container {
++ 196         min-width: 260px;
++ 197         max-width: 260px;
++ 198     }
++ 199 }
++ 200 
++ 201 /* --- Cores das Listas --- */
++ 202 .list-color-red { background-color: #FEE2E2; }
++ 203 .list-color-orange { background-color: #FFEDD5; }
++ 204 .list-color-yellow { background-color: #FEF9C3; }
++ 205 .list-color-green { background-color: #D1FAE5; }
++ 206 .list-color-blue { background-color: #DBEAFE; }
++ 207 .list-color-indigo { background-color: #E0E7FF; }
++ 208 .list-color-purple { background-color: #F3E8FF; }
++ 209 .list-color-pink { background-color: #FCE7F3; }
++ 210 .list-color-gray { background-color: #F3F4F6; }
++ 211 
++ 212 /* Dark mode para cores das listas */
++ 213 .dark .list-color-red { background-color: #7f1d1d; }
++ 214 .dark .list-color-orange { background-color: #7c2d12; }
++ 215 .dark .list-color-yellow { background-color: #713f12; }
++ 216 .dark .list-color-green { background-color: #14532d; }
++ 217 .dark .list-color-blue { background-color: #1e3a8a; }
++ 218 .dark .list-color-indigo { background-color: #312e81; }
++ 219 .dark .list-color-purple { background-color: #581c87; }
++ 220 .dark .list-color-pink { background-color: #831843; }
++ 221 .dark .list-color-gray { background-color: #374151; }
